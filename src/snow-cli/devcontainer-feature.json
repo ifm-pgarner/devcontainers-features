@@ -1,0 +1,23 @@
+{
+    "id": "snow-cli",
+    "version": "1.0.0",
+    "name": "Snowflake CLI (snow)",
+    "description": "Installs the Snowflake CLI (`snow`) using uv, available globally on PATH.",
+    "documentationURL": "https://github.com/ifm-pgarner/devcontainers-snow-cli/tree/main/src/snow-cli",
+    "licenseURL": "https://github.com/ifm-pgarner/devcontainers-snow-cli/blob/main/LICENSE",
+    "options": {
+        "version": {
+            "type": "string",
+            "default": "latest",
+            "description": "Version of the snowflake-cli PyPI package to install (e.g. 3.5.0). Use 'latest' for the newest release."
+        },
+        "pythonVersion": {
+            "type": "string",
+            "default": "3.11",
+            "description": "Python version uv uses to run the CLI. uv downloads a managed CPython if a matching one is not already present."
+        }
+    },
+    "installsAfter": [
+        "ghcr.io/devcontainers/features/common-utils"
+    ]
+}
