@@ -10,6 +10,6 @@ source dev-container-features-test-lib
 
 check "snow on PATH"          bash -lc "command -v snow"
 check "snow --version"        bash -lc "snow --version"
-check "runs as non-root user" bash -lc "su vscode -c 'snow --version'"
+check "runs as non-root user" bash -lc 'if [ "$(id -u)" -eq 0 ]; then su vscode -c "snow --version"; else snow --version; fi'
 
 reportResults
