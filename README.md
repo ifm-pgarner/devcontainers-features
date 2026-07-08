@@ -3,9 +3,7 @@
 A [dev container Feature](https://containers.dev/implementors/features/) that
 installs the Snowflake CLI (`snow`) into your development container.
 
-It is published once to GHCR and reused across repositories (e.g.
-`superservice-analytics` and `data-analytics-hub`) so there is no duplicated,
-drift-prone install logic in each project.
+New version is published to GHCR when changes are merged to `main` branch.
 
 ## What it installs
 
