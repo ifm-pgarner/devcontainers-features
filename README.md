@@ -143,9 +143,9 @@ snow connection list
 2. **Bump `version`** in `src/snow-cli/devcontainer-feature.json` (semver) — this
    is what triggers a new published version.
 3. Merge to `main`. The `release.yaml` workflow publishes to GHCR via
-   [`devcontainers/action`](https://github.com/devcontainers/action) and commits
-   the auto-generated per-feature `README.md` back to `main` (don't hand-write
-   that file).
+   [`devcontainers/action`](https://github.com/devcontainers/action) and opens a
+   PR with the auto-generated per-feature `README.md` (don't hand-write that
+   file).
 4. **First publish only:** set the GHCR package visibility to **public** so
    consumer repos can pull it without authentication.
 
