@@ -34,8 +34,11 @@ check_packages() {
     fi
 }
 
+# CA certs are needed for the HTTPS download regardless of whether curl is
+# already present, so ensure them unconditionally.
+check_packages ca-certificates
 if ! command -v curl >/dev/null 2>&1; then
-    check_packages curl ca-certificates
+    check_packages curl
 fi
 
 # ---------------------------------------------------------------------------
@@ -62,10 +65,13 @@ fi
 
 echo "Installing ${PACKAGE} with uv..."
 mkdir -p "${UV_TOOL_DIR}" "${UV_PYTHON_INSTALL_DIR}" "${UV_TOOL_BIN_DIR}"
-uv tool install --python "${PYTHON_VERSION}" "${PACKAGE}"
+"${UV_BIN}" tool install --python "${PYTHON_VERSION}" "${PACKAGE}"
 
-# Make uv dirs and the installed binaries readable/executable by all users.
-chmod -R a+rX /opt/uv "${UV_TOOL_BIN_DIR}" 2>/dev/null || true
+# Make uv's own dirs and the installed `snow` entrypoint readable/executable by
+# all users. Scope this to uv-managed paths so we don't touch unrelated
+# binaries under the shared ${UV_TOOL_BIN_DIR} (e.g. /usr/local/bin).
+chmod -R a+rX /opt/uv 2>/dev/null || true
+chmod a+rx "${UV_TOOL_BIN_DIR}/snow" 2>/dev/null || true
 
 # ---------------------------------------------------------------------------
 # Verify.
