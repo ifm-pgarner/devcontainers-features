@@ -1,0 +1,10 @@
+{
+    "install_python_312": {
+        "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+        "features": {
+            "snow-cli": {
+                "pythonVersion": "3.12"
+            }
+        }
+    }
+}
