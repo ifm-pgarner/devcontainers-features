@@ -1,4 +1,4 @@
-# devcontainers-snow-cli
+# devcontainers-features
 
 A [dev container Feature](https://containers.dev/implementors/features/) that
 installs the Snowflake CLI (`snow`) into your development container.
@@ -17,7 +17,7 @@ New version is published to GHCR when changes are merged to `main` branch.
 Published image:
 
 ```
-ghcr.io/ifm-pgarner/devcontainers-snow-cli/snow-cli
+ghcr.io/ifm-pgarner/devcontainers-features/snow-cli
 ```
 
 ## Usage
@@ -26,7 +26,7 @@ Reference the Feature in your project's `.devcontainer/devcontainer.json`:
 
 ```jsonc
 "features": {
-    "ghcr.io/ifm-pgarner/devcontainers-snow-cli/snow-cli:1": {}
+    "ghcr.io/ifm-pgarner/devcontainers-features/snow-cli:1": {}
 }
 ```
 
@@ -41,7 +41,7 @@ Pin as loosely or tightly as you like: `:1`, `:1.0`, or `:1.0.0`.
 
 ```jsonc
 "features": {
-    "ghcr.io/ifm-pgarner/devcontainers-snow-cli/snow-cli:1": {
+    "ghcr.io/ifm-pgarner/devcontainers-features/snow-cli:1": {
         "version": "latest",
         "pythonVersion": "3.11"
     }
@@ -107,7 +107,7 @@ pure env-var auth), but it is **not** the place for the mount's host-side path â
     "name": "superservice-analytics",
     "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
     "features": {
-        "ghcr.io/ifm-pgarner/devcontainers-snow-cli/snow-cli:1": {}
+        "ghcr.io/ifm-pgarner/devcontainers-features/snow-cli:1": {}
     },
     "mounts": [
         "source=${localEnv:HOME}${localEnv:USERPROFILE}/.snowflake,target=/home/vscode/.snowflake,type=bind"
@@ -143,9 +143,9 @@ snow connection list
 2. **Bump `version`** in `src/snow-cli/devcontainer-feature.json` (semver) â€” this
    is what triggers a new published version.
 3. Merge to `main`. The `release.yaml` workflow publishes to GHCR via
-   [`devcontainers/action`](https://github.com/devcontainers/action) and opens a
-   PR with the auto-generated per-feature `README.md` (don't hand-write that
-   file).
+   [`devcontainers/action`](https://github.com/devcontainers/action) and commits
+   the auto-generated per-feature `README.md` back to `main` (don't hand-write
+   that file).
 4. **First publish only:** set the GHCR package visibility to **public** so
    consumer repos can pull it without authentication.
 

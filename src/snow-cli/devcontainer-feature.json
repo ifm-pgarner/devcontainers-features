@@ -3,8 +3,8 @@
     "version": "1.0.0",
     "name": "Snowflake CLI (snow)",
     "description": "Installs the Snowflake CLI (`snow`) using uv, available globally on PATH.",
-    "documentationURL": "https://github.com/ifm-pgarner/devcontainers-snow-cli/tree/main/src/snow-cli",
-    "licenseURL": "https://github.com/ifm-pgarner/devcontainers-snow-cli/blob/main/LICENSE",
+    "documentationURL": "https://github.com/ifm-pgarner/devcontainers-features/tree/main/src/snow-cli",
+    "licenseURL": "https://github.com/ifm-pgarner/devcontainers-features/blob/main/LICENSE",
     "options": {
         "version": {
             "type": "string",
