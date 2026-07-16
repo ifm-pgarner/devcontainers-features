@@ -1,0 +1,19 @@
+{
+    "install_cli_only": {
+        "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+        "features": {
+            "playwright-cli": {
+                "browsers": "none",
+                "installDeps": false
+            }
+        }
+    },
+    "install_firefox": {
+        "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+        "features": {
+            "playwright-cli": {
+                "browsers": "firefox"
+            }
+        }
+    }
+}

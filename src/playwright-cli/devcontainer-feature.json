@@ -1,0 +1,34 @@
+{
+    "id": "playwright-cli",
+    "version": "1.0.0",
+    "name": "Playwright CLI (playwright)",
+    "description": "Installs the Playwright CLI (`playwright`) globally via npm, plus browser binaries into a shared location usable by every user in the container.",
+    "documentationURL": "https://github.com/ifm-pgarner/devcontainers-features/tree/main/src/playwright-cli",
+    "licenseURL": "https://github.com/ifm-pgarner/devcontainers-features/blob/main/LICENSE",
+    "options": {
+        "version": {
+            "type": "string",
+            "default": "latest",
+            "description": "Version of the `playwright` npm package to install (e.g. 1.48.0). Use 'latest' for the newest release."
+        },
+        "browsers": {
+            "type": "string",
+            "default": "chromium",
+            "description": "Which browser binaries to download. Comma-separated list of chromium/firefox/webkit, 'all' for every browser, or 'none' to install only the CLI."
+        },
+        "installDeps": {
+            "type": "boolean",
+            "default": true,
+            "description": "Install the OS-level packages the browsers need (via `playwright install-deps`). Requires an apt-based base image."
+        }
+    },
+    "containerEnv": {
+        "PLAYWRIGHT_BROWSERS_PATH": "/ms-playwright"
+    },
+    "installsAfter": [
+        "ghcr.io/devcontainers/features/common-utils"
+    ],
+    "dependsOn": {
+        "ghcr.io/devcontainers/features/node:1": {}
+    }
+}

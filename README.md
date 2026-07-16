@@ -1,11 +1,16 @@
 # devcontainers-features
 
-A [dev container Feature](https://containers.dev/implementors/features/) that
-installs the Snowflake CLI (`snow`) into your development container.
+A collection of [dev container Features](https://containers.dev/implementors/features/)
+for our development containers:
 
-New version is published to GHCR when changes are merged to `main` branch.
+- **`snow-cli`** — the Snowflake CLI (`snow`).
+- **`playwright-cli`** — the Playwright CLI (`playwright`) plus browser binaries.
 
-## What it installs
+Each Feature is published to GHCR when changes are merged to the `main` branch.
+
+## snow-cli
+
+### What it installs
 
 - The [`snowflake-cli`](https://pypi.org/project/snowflake-cli/) PyPI package,
   which provides the `snow` command.
@@ -20,7 +25,7 @@ Published image:
 ghcr.io/ifm-pgarner/devcontainers-features/snow-cli
 ```
 
-## Usage
+### Usage
 
 Reference the Feature in your project's `.devcontainer/devcontainer.json`:
 
@@ -32,7 +37,7 @@ Reference the Feature in your project's `.devcontainer/devcontainer.json`:
 
 Pin as loosely or tightly as you like: `:1`, `:1.0`, or `:1.0.0`.
 
-### Options
+#### Options
 
 | Option          | Default    | Description                                                        |
 | --------------- | ---------- | ------------------------------------------------------------------ |
@@ -48,7 +53,7 @@ Pin as loosely or tightly as you like: `:1`, `:1.0`, or `:1.0.0`.
 }
 ```
 
-## Providing Snowflake credentials
+### Providing Snowflake credentials
 
 **Never bake Snowflake credentials into the image or commit them to git.** The
 Feature installs the CLI only; it does not manage credentials.
@@ -66,7 +71,7 @@ Add a `mounts` entry to your `devcontainer.json`:
 ]
 ```
 
-### Why the `${localEnv:HOME}${localEnv:USERPROFILE}` trick
+#### Why the `${localEnv:HOME}${localEnv:USERPROFILE}` trick
 
 `${localEnv:...}` substitutions read the **host** OS environment. The two
 variables are concatenated so the same config works cross-platform with no
@@ -100,7 +105,7 @@ container process itself needs (e.g. `SNOWFLAKE_ACCOUNT` if you ever switch to
 pure env-var auth), but it is **not** the place for the mount's host-side path —
 `${localEnv:...}` never reads a project's `.env` file.
 
-### Full consumer example
+#### Full consumer example
 
 ```jsonc
 {
@@ -121,17 +126,78 @@ After rebuilding the container, confirm your profiles are visible:
 snow connection list
 ```
 
+## playwright-cli
+
+### What it installs
+
+- The [`playwright`](https://www.npmjs.com/package/playwright) npm package,
+  installed globally so the `playwright` command is on `PATH` for every user.
+- Browser binaries, downloaded into a shared `/ms-playwright` directory (the
+  same convention as Microsoft's official Playwright images) via
+  `PLAYWRIGHT_BROWSERS_PATH`, so they're usable by the non-root `vscode` user.
+- Optionally, the OS-level libraries the browsers need (`playwright
+  install-deps`).
+
+Node.js is required and is pulled in automatically via the Feature's
+`dependsOn` on `ghcr.io/devcontainers/features/node`.
+
+Published image:
+
+```
+ghcr.io/ifm-pgarner/devcontainers-features/playwright-cli
+```
+
+### Usage
+
+```jsonc
+"features": {
+    "ghcr.io/ifm-pgarner/devcontainers-features/playwright-cli:1": {}
+}
+```
+
+#### Options
+
+| Option        | Default    | Description                                                                                  |
+| ------------- | ---------- | -------------------------------------------------------------------------------------------- |
+| `version`     | `latest`   | `playwright` npm version to install (e.g. `1.48.0`).                                         |
+| `browsers`    | `chromium` | Browsers to download: comma-separated `chromium`/`firefox`/`webkit`, `all`, or `none`.       |
+| `installDeps` | `true`     | Install the OS packages the browsers need (`playwright install-deps`; needs an apt base image). |
+
+```jsonc
+"features": {
+    "ghcr.io/ifm-pgarner/devcontainers-features/playwright-cli:1": {
+        "version": "latest",
+        "browsers": "chromium,firefox",
+        "installDeps": true
+    }
+}
+```
+
+> **Note:** `browsers` installs the browsers Playwright itself ships. The
+> `playwright install chrome`/`msedge` channels (system-branded builds) are not
+> covered by this Feature's default flow.
+
 ## Repository layout
 
 ```
 .
-├── src/snow-cli/
-│   ├── devcontainer-feature.json   # Feature metadata + options
-│   └── install.sh                  # Install logic (uv → snowflake-cli)
-├── test/snow-cli/
-│   ├── test.sh                     # Default test
-│   ├── scenarios.json              # Scenario definitions
-│   └── install_python_312.sh       # Scenario test
+├── src/
+│   ├── snow-cli/
+│   │   ├── devcontainer-feature.json   # Feature metadata + options
+│   │   └── install.sh                  # Install logic (uv → snowflake-cli)
+│   └── playwright-cli/
+│       ├── devcontainer-feature.json   # Feature metadata + options
+│       └── install.sh                  # Install logic (npm → playwright + browsers)
+├── test/
+│   ├── snow-cli/
+│   │   ├── test.sh                     # Default test
+│   │   ├── scenarios.json              # Scenario definitions
+│   │   └── install_python_312.sh       # Scenario test
+│   └── playwright-cli/
+│       ├── test.sh                     # Default test
+│       ├── scenarios.json              # Scenario definitions
+│       ├── install_cli_only.sh         # Scenario test (browsers=none)
+│       └── install_firefox.sh          # Scenario test (browsers=firefox)
 └── .github/workflows/
     ├── release.yaml                # Publish to GHCR + generate docs
     └── test.yaml                   # Run feature tests in CI
@@ -139,10 +205,12 @@ snow connection list
 
 ## Contributing / releasing
 
-1. Make your changes under `src/snow-cli/`.
-2. **Bump `version`** in `src/snow-cli/devcontainer-feature.json` (semver) — this
-   is what triggers a new published version.
-3. Merge to `main`. The `release.yaml` workflow publishes to GHCR via
+1. Make your changes under `src/<feature>/` (e.g. `src/snow-cli/` or
+   `src/playwright-cli/`).
+2. **Bump `version`** in that feature's `devcontainer-feature.json` (semver) —
+   this is what triggers a new published version.
+3. Merge to `main`. The `release.yaml` workflow publishes every feature under
+   `./src` to GHCR via
    [`devcontainers/action`](https://github.com/devcontainers/action) and opens a
    PR with the auto-generated per-feature `README.md` (don't hand-write that
    file).
@@ -152,7 +220,8 @@ snow connection list
 Tests run automatically on pull requests via `test.yaml`, or locally with:
 
 ```bash
-devcontainer features test -f snow-cli -i mcr.microsoft.com/devcontainers/base:ubuntu .
+devcontainer features test -f snow-cli       -i mcr.microsoft.com/devcontainers/base:ubuntu .
+devcontainer features test -f playwright-cli -i mcr.microsoft.com/devcontainers/base:ubuntu .
 ```
 
 ## License

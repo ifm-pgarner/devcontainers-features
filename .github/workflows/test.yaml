@@ -13,6 +13,7 @@ jobs:
       matrix:
         features:
           - snow-cli
+          - playwright-cli
         baseImage:
           - mcr.microsoft.com/devcontainers/base:ubuntu
     steps:
@@ -30,6 +31,7 @@ jobs:
       matrix:
         features:
           - snow-cli
+          - playwright-cli
     steps:
       - uses: actions/checkout@v7
 
