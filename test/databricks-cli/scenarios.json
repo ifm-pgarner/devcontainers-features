@@ -1,0 +1,10 @@
+{
+    "install_pinned_version": {
+        "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+        "features": {
+            "databricks-cli": {
+                "version": "0.250.0"
+            }
+        }
+    }
+}

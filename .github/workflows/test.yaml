@@ -14,6 +14,7 @@ jobs:
         features:
           - snow-cli
           - playwright-cli
+          - databricks-cli
         baseImage:
           - mcr.microsoft.com/devcontainers/base:ubuntu
     steps:
@@ -32,6 +33,7 @@ jobs:
         features:
           - snow-cli
           - playwright-cli
+          - databricks-cli
     steps:
       - uses: actions/checkout@v7
 

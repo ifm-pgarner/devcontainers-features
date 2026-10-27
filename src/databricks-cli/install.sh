@@ -1,0 +1,115 @@
+#!/usr/bin/env bash
+#-------------------------------------------------------------------------------------------------------------
+# Installs the Databricks CLI (`databricks`) into /usr/local/bin so every user
+# in the container can run it.
+#
+# Mirrors the official curl installer (https://github.com/databricks/setup-cli),
+# which downloads a prebuilt binary from the databricks/cli GitHub releases, but
+# also resolves 'latest' at build time and verifies the archive against the
+# release's SHA256SUMS file (the upstream script does not).
+#-------------------------------------------------------------------------------------------------------------
+set -euo pipefail
+
+# Feature options are passed in as UPPERCASE environment variables.
+VERSION="${VERSION:-latest}"
+TARGET_DIR="/usr/local/bin"
+REPO_URL="https://github.com/databricks/cli"
+
+echo "Activating feature 'databricks-cli' (version=${VERSION})"
+
+# ---------------------------------------------------------------------------
+# Ensure the tools we need are present (curl, tar, sha256sum, CA certs).
+# ---------------------------------------------------------------------------
+if ! command -v curl >/dev/null 2>&1 || ! command -v tar >/dev/null 2>&1 || ! command -v sha256sum >/dev/null 2>&1; then
+    if command -v apt-get >/dev/null 2>&1; then
+        echo "Installing prerequisites with apt-get..."
+        apt-get update -y
+        DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends curl ca-certificates tar coreutils
+        rm -rf /var/lib/apt/lists/*
+    else
+        echo "ERROR: curl, tar and sha256sum are required and no apt-get was found to install them." >&2
+        exit 1
+    fi
+fi
+
+# ---------------------------------------------------------------------------
+# Map the container architecture to the release asset suffix.
+# ---------------------------------------------------------------------------
+case "$(uname -m)" in
+    x86_64 | amd64)  ARCH="amd64" ;;
+    aarch64 | arm64) ARCH="arm64" ;;
+    *)
+        echo "ERROR: unsupported architecture '$(uname -m)'." >&2
+        exit 1
+        ;;
+esac
+
+# ---------------------------------------------------------------------------
+# Resolve 'latest' by following the /releases/latest redirect to its tag
+# (avoids the rate-limited GitHub API). Strip any leading 'v' from the option.
+# ---------------------------------------------------------------------------
+if [ "${VERSION}" = "latest" ]; then
+    LATEST_URL="$(curl -fsSL -o /dev/null -w '%{url_effective}' "${REPO_URL}/releases/latest")"
+    VERSION="${LATEST_URL##*/}"
+fi
+VERSION="${VERSION#v}"
+if ! [[ "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    echo "ERROR: could not determine a valid Databricks CLI version (got '${VERSION}')." >&2
+    exit 1
+fi
+
+FILE="databricks_cli_${VERSION}_linux_${ARCH}.tar.gz"
+SUMS="databricks_cli_${VERSION}_SHA256SUMS"
+DOWNLOAD_BASE="${REPO_URL}/releases/download/v${VERSION}"
+
+# ---------------------------------------------------------------------------
+# Download, verify and install.
+# ---------------------------------------------------------------------------
+TMP_DIR="$(mktemp -d)"
+trap 'rm -rf "${TMP_DIR}"' EXIT
+
+echo "Downloading ${FILE}..."
+curl -fsSL -o "${TMP_DIR}/${FILE}" "${DOWNLOAD_BASE}/${FILE}"
+curl -fsSL -o "${TMP_DIR}/${SUMS}" "${DOWNLOAD_BASE}/${SUMS}"
+
+echo "Verifying SHA256 checksum..."
+(cd "${TMP_DIR}" && grep " ${FILE}\$" "${SUMS}" | sha256sum -c -)
+
+tar -xzf "${TMP_DIR}/${FILE}" -C "${TMP_DIR}" databricks
+install -m 0755 "${TMP_DIR}/databricks" "${TARGET_DIR}/databricks"
+
+if ! command -v databricks >/dev/null 2>&1; then
+    echo "ERROR: 'databricks' was not found on PATH after installation." >&2
+    exit 1
+fi
+echo "Installed: $(databricks --version)"
+
+# ---------------------------------------------------------------------------
+# Persist interactive OAuth logins across container rebuilds.
+#
+# devcontainer-feature.json mounts the `databricks-cli-auth` named volume at
+# AUTH_DIR and points DATABRICKS_CONFIG_FILE into it. The OAuth token cache
+# lives under ~/.databricks, so symlink that directory into the volume too.
+# There is no OS keyring in the container, hence DATABRICKS_AUTH_STORAGE=plaintext.
+#
+# A new named volume is seeded from the image's AUTH_DIR, so the ownership set
+# here is what the remote user sees on first use.
+# ---------------------------------------------------------------------------
+AUTH_DIR="/dc/databricks"
+USERNAME="${_REMOTE_USER:-root}"
+USER_HOME="${_REMOTE_USER_HOME:-$(getent passwd "${USERNAME}" | cut -d: -f6)}"
+
+mkdir -p "${AUTH_DIR}"
+chown "${USERNAME}:" "${AUTH_DIR}"
+chmod 0700 "${AUTH_DIR}"
+
+if [ -n "${USER_HOME}" ] && [ -d "${USER_HOME}" ]; then
+    if [ -e "${USER_HOME}/.databricks" ] && [ ! -L "${USER_HOME}/.databricks" ]; then
+        echo "WARNING: ${USER_HOME}/.databricks already exists; OAuth tokens will not persist across rebuilds." >&2
+    else
+        ln -sfn "${AUTH_DIR}" "${USER_HOME}/.databricks"
+        chown -h "${USERNAME}:" "${USER_HOME}/.databricks"
+    fi
+fi
+
+echo "Done. The 'databricks' CLI is available on PATH. Sign in with: databricks auth login --host <workspace-url>"
