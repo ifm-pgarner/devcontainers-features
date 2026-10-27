@@ -16,6 +16,7 @@
         "DATABRICKS_AUTH_STORAGE": "plaintext",
         "DATABRICKS_CONFIG_FILE": "/dc/databricks/.databrickscfg"
     },
+    "entrypoint": "/usr/local/share/databricks-cli-init.sh",
     "mounts": [
         {
             "source": "databricks-cli-auth",
