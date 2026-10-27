@@ -5,6 +5,7 @@ for our development containers:
 
 - **`snow-cli`** — the Snowflake CLI (`snow`).
 - **`playwright-cli`** — the Playwright CLI (`playwright`) plus browser binaries.
+- **`databricks-cli`** — the Databricks CLI (`databricks`).
 
 Each Feature is published to GHCR when changes are merged to the `main` branch.
 
@@ -177,6 +178,78 @@ ghcr.io/ifm-pgarner/devcontainers-features/playwright-cli
 > `playwright install chrome`/`msedge` channels (system-branded builds) are not
 > covered by this Feature's default flow.
 
+## databricks-cli
+
+### What it installs
+
+- The prebuilt `databricks` binary from the
+  [databricks/cli GitHub releases](https://github.com/databricks/cli/releases),
+  the same artifact the official
+  [curl installer](https://docs.databricks.com/aws/en/dev-tools/cli/install#curl-installation-for-linux-macos-and-windows)
+  uses, installed to `/usr/local/bin` so it's on `PATH` for every user.
+- Unlike the upstream `curl | sh` script, the Feature resolves `latest` at
+  build time and verifies the archive against the release's `SHA256SUMS` file
+  before installing. Supports `amd64` and `arm64`.
+
+Published image:
+
+```
+ghcr.io/ifm-pgarner/devcontainers-features/databricks-cli
+```
+
+### Usage
+
+```jsonc
+"features": {
+    "ghcr.io/ifm-pgarner/devcontainers-features/databricks-cli:1": {}
+}
+```
+
+#### Options
+
+| Option    | Default  | Description                                              |
+| --------- | -------- | -------------------------------------------------------- |
+| `version` | `latest` | Databricks CLI version to install (e.g. `0.250.0`).      |
+
+### Signing in
+
+The Feature is set up for interactive OAuth (U2M) login, which Databricks
+recommends over personal access tokens. Inside the container, run:
+
+```bash
+databricks auth login --host https://<deployment-name>.cloud.databricks.com
+```
+
+(Omit `--host` to pick a workspace at `login.databricks.com`.) VS Code opens
+the login page in your host browser and forwards the callback into the
+container. Then check it worked:
+
+```bash
+databricks auth profiles
+databricks current-user me
+```
+
+#### How the login is stored
+
+- The Feature mounts a named Docker volume, `databricks-cli-auth`, at
+  `/dc/databricks`. It is shared by every project using this Feature, so you
+  sign in once per machine and the login survives container rebuilds.
+- `DATABRICKS_CONFIG_FILE` points at `/dc/databricks/.databrickscfg`. For
+  OAuth profiles this holds only the host and profile name, no secrets.
+- `~/.databricks` (the OAuth token cache) is symlinked into the volume.
+- The container has no OS keyring, so the Feature sets
+  `DATABRICKS_AUTH_STORAGE=plaintext`. Tokens are stored unencrypted inside the
+  volume (mode `0700`, owned by the remote user). Access tokens expire within
+  an hour and are refreshed automatically.
+
+To sign out, run `databricks auth logout`. To wipe the login entirely,
+`docker volume rm databricks-cli-auth`.
+
+**Never commit `.databrickscfg` files or tokens, or bake them into images.**
+For CI/automation, use OAuth M2M with a service principal: supply
+`DATABRICKS_HOST`, `DATABRICKS_CLIENT_ID` and `DATABRICKS_CLIENT_SECRET` from
+your CI secret store.
+
 ## Repository layout
 
 ```
@@ -185,19 +258,26 @@ ghcr.io/ifm-pgarner/devcontainers-features/playwright-cli
 │   ├── snow-cli/
 │   │   ├── devcontainer-feature.json   # Feature metadata + options
 │   │   └── install.sh                  # Install logic (uv → snowflake-cli)
-│   └── playwright-cli/
+│   ├── playwright-cli/
+│   │   ├── devcontainer-feature.json   # Feature metadata + options
+│   │   └── install.sh                  # Install logic (npm → playwright + browsers)
+│   └── databricks-cli/
 │       ├── devcontainer-feature.json   # Feature metadata + options
-│       └── install.sh                  # Install logic (npm → playwright + browsers)
+│       └── install.sh                  # Install logic (GitHub release → databricks)
 ├── test/
 │   ├── snow-cli/
 │   │   ├── test.sh                     # Default test
 │   │   ├── scenarios.json              # Scenario definitions
 │   │   └── install_python_312.sh       # Scenario test
-│   └── playwright-cli/
+│   ├── playwright-cli/
+│   │   ├── test.sh                     # Default test
+│   │   ├── scenarios.json              # Scenario definitions
+│   │   ├── install_cli_only.sh         # Scenario test (browsers=none)
+│   │   └── install_firefox.sh          # Scenario test (browsers=firefox)
+│   └── databricks-cli/
 │       ├── test.sh                     # Default test
 │       ├── scenarios.json              # Scenario definitions
-│       ├── install_cli_only.sh         # Scenario test (browsers=none)
-│       └── install_firefox.sh          # Scenario test (browsers=firefox)
+│       └── install_pinned_version.sh   # Scenario test (version=0.250.0)
 └── .github/workflows/
     ├── release.yaml                # Publish to GHCR + generate docs
     └── test.yaml                   # Run feature tests in CI
